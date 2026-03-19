@@ -1,5 +1,5 @@
 use crate::auth::Credentials;
-use crate::error::Result;
+use crate::error::{Error, Result};
 use futures_util::stream::{SplitSink, SplitStream};
 use futures_util::StreamExt;
 use tokio::io::{AsyncRead, AsyncWrite};
@@ -14,8 +14,6 @@ pub type WsSource<S> = SplitStream<WsStream<S>>;
 
 const SUBPROTOCOL: &str = "api.iterm2.com";
 const TCP_URL: &str = "ws://localhost:1912";
-const LIBRARY_VERSION: &str = "0.1.0";
-
 fn unix_socket_path() -> std::path::PathBuf {
     let home = std::env::var("HOME").unwrap_or_default();
     std::path::PathBuf::from(home)
@@ -27,7 +25,7 @@ pub async fn connect_tcp(
     app_name: &str,
 ) -> Result<(WsSink<MaybeTlsStream<tokio::net::TcpStream>>, WsSource<MaybeTlsStream<tokio::net::TcpStream>>)> {
     let mut request = TCP_URL.into_client_request()?;
-    apply_headers(request.headers_mut(), credentials, app_name);
+    apply_headers(request.headers_mut(), credentials, app_name)?;
     let config = ws_config();
     let (ws_stream, _response) =
         tokio_tungstenite::connect_async_with_config(request, Some(config), false).await?;
@@ -52,7 +50,7 @@ where
     S: AsyncRead + AsyncWrite + Unpin,
 {
     let mut request = TCP_URL.into_client_request()?;
-    apply_headers(request.headers_mut(), credentials, app_name);
+    apply_headers(request.headers_mut(), credentials, app_name)?;
     let config = ws_config();
     let (ws_stream, _response) =
         tokio_tungstenite::client_async_with_config(request, stream, Some(config)).await?;
@@ -66,27 +64,22 @@ pub async fn connect(
     WsSink<MaybeTlsStream<tokio::net::TcpStream>>,
     WsSource<MaybeTlsStream<tokio::net::TcpStream>>,
 )> {
-    // Try Unix socket first, fall back to TCP
-    let path = unix_socket_path();
-    if path.exists() {
-        match tokio::net::UnixStream::connect(&path).await {
-            Ok(stream) => {
-                // We can't return a different type here, so we just fall through to TCP
-                // The unix connect function returns a different type, so callers who want
-                // unix should use connect_unix directly.
-                let _ = stream;
-            }
-            Err(_) => {}
-        }
-    }
     connect_tcp(credentials, app_name).await
+}
+
+fn make_header_value(value: &str, field_name: &str) -> Result<HeaderValue> {
+    HeaderValue::from_str(value).map_err(|_| {
+        Error::Auth(format!(
+            "Invalid characters in {field_name} (must be visible ASCII)"
+        ))
+    })
 }
 
 fn apply_headers(
     headers: &mut tokio_tungstenite::tungstenite::http::HeaderMap,
     credentials: &Credentials,
     app_name: &str,
-) {
+) -> Result<()> {
     headers.insert(
         "Sec-WebSocket-Protocol",
         HeaderValue::from_static(SUBPROTOCOL),
@@ -97,25 +90,26 @@ fn apply_headers(
     );
     headers.insert(
         "x-iterm2-library-version",
-        HeaderValue::from_str(&format!("rust {LIBRARY_VERSION}")).unwrap(),
+        HeaderValue::from_static(concat!("rust ", "0.1.0")),
     );
     headers.insert(
         "x-iterm2-cookie",
-        HeaderValue::from_str(&credentials.cookie).unwrap(),
+        make_header_value(&credentials.cookie, "cookie")?,
     );
     headers.insert(
         "x-iterm2-key",
-        HeaderValue::from_str(&credentials.key).unwrap(),
+        make_header_value(&credentials.key, "key")?,
     );
     headers.insert(
         "x-iterm2-advisory-name",
-        HeaderValue::from_str(app_name).unwrap(),
+        make_header_value(app_name, "app_name")?,
     );
+    Ok(())
 }
 
 fn ws_config() -> WebSocketConfig {
     let mut config = WebSocketConfig::default();
-    config.max_frame_size = Some(16 * 1024 * 1024);
-    config.max_message_size = Some(64 * 1024 * 1024);
+    config.max_frame_size = Some(4 * 1024 * 1024); // 4MB per frame
+    config.max_message_size = Some(8 * 1024 * 1024); // 8MB total
     config
 }

@@ -26,8 +26,10 @@ impl Stream for NotificationStream {
                     return Poll::Pending;
                 }
                 Err(broadcast::error::TryRecvError::Lagged(_)) => {
-                    // Skip lagged messages
-                    continue;
+                    // Messages were dropped. Return Pending and retry on
+                    // next poll to avoid busy-spinning.
+                    cx.waker().wake_by_ref();
+                    return Poll::Pending;
                 }
                 Err(broadcast::error::TryRecvError::Closed) => return Poll::Ready(None),
             }

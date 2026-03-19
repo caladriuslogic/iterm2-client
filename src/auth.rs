@@ -1,10 +1,19 @@
 use crate::error::{Error, Result};
 use std::env;
+use std::fmt;
 
-#[derive(Debug)]
 pub struct Credentials {
     pub cookie: String,
     pub key: String,
+}
+
+impl fmt::Debug for Credentials {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Credentials")
+            .field("cookie", &"[redacted]")
+            .field("key", &"[redacted]")
+            .finish()
+    }
 }
 
 pub trait AppleScriptRunner: Send + Sync {
@@ -62,9 +71,9 @@ fn parse_cookie_key(output: &str) -> Result<Credentials> {
             key: parts[1].to_string(),
         })
     } else {
-        Err(Error::Auth(format!(
-            "Failed to parse cookie/key from osascript output: {output:?}"
-        )))
+        Err(Error::Auth(
+            "Failed to parse cookie/key from osascript output (expected two whitespace-separated tokens)".to_string()
+        ))
     }
 }
 
@@ -152,5 +161,17 @@ mod tests {
         let err =
             resolve_credentials_with_env(&runner, |_| None).unwrap_err();
         assert!(err.to_string().contains("Failed to parse"));
+    }
+
+    #[test]
+    fn debug_redacts_credentials() {
+        let creds = Credentials {
+            cookie: "secret_cookie".to_string(),
+            key: "secret_key".to_string(),
+        };
+        let debug_output = format!("{:?}", creds);
+        assert!(!debug_output.contains("secret_cookie"));
+        assert!(!debug_output.contains("secret_key"));
+        assert!(debug_output.contains("[redacted]"));
     }
 }
