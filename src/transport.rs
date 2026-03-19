@@ -103,7 +103,7 @@ fn apply_headers(
     );
     headers.insert(
         "x-iterm2-library-version",
-        HeaderValue::from_static(concat!("rust ", "0.2.0")),
+        HeaderValue::from_static(concat!("rust ", "0.2.1")),
     );
     headers.insert(
         "x-iterm2-cookie",

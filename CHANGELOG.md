@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.1 (2026-03-19)
+
+### Fixed
+
+- Suppressed dead_code warnings in test mock server infrastructure.
+
 ## 0.2.0 (2026-03-19)
 
 ### Breaking changes

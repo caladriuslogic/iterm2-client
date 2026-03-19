@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use futures_util::{SinkExt, StreamExt};
 use iterm2_client::proto;
 use prost::Message;
