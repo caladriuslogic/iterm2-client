@@ -51,17 +51,26 @@ impl AppleScriptRunner for OsascriptRunner {
     }
 }
 
-const APPLESCRIPT_REQUEST: &str = r#"tell application "iTerm2" to request cookie and key"#;
+fn applescript_request(app_name: &str) -> String {
+    // The "for app named" clause is required — without it, AppleScript parses
+    // "and key" as the boolean AND operator applied to the cookie string.
+    format!(
+        r#"tell application "iTerm2" to request cookie and key for app named "{}""#,
+        app_name.replace('\\', "\\\\").replace('"', "\\\"")
+    )
+}
 
 /// Resolve iTerm2 API credentials.
 ///
 /// Checks `ITERM2_COOKIE` and `ITERM2_KEY` environment variables first,
 /// then falls back to requesting credentials from iTerm2 via AppleScript.
-pub fn resolve_credentials(runner: &dyn AppleScriptRunner) -> Result<Credentials> {
-    resolve_credentials_with_env(runner, |k| env::var(k).ok())
+/// The `app_name` is shown in iTerm2's authorization dialog.
+pub fn resolve_credentials(app_name: &str, runner: &dyn AppleScriptRunner) -> Result<Credentials> {
+    resolve_credentials_with_env(app_name, runner, |k| env::var(k).ok())
 }
 
 fn resolve_credentials_with_env(
+    app_name: &str,
     runner: &dyn AppleScriptRunner,
     env_fn: impl Fn(&str) -> Option<String>,
 ) -> Result<Credentials> {
@@ -73,8 +82,9 @@ fn resolve_credentials_with_env(
     }
 
     // Fall back to osascript
+    let script = applescript_request(app_name);
     let output = runner
-        .run_osascript(APPLESCRIPT_REQUEST)
+        .run_osascript(&script)
         .map_err(|e| Error::Auth(format!("osascript failed: {e}")))?;
 
     parse_cookie_key(&output)
@@ -113,7 +123,7 @@ mod tests {
         let runner = MockRunner {
             result: Err("should not be called".to_string()),
         };
-        let creds = resolve_credentials_with_env(&runner, |key| match key {
+        let creds = resolve_credentials_with_env("test-app", &runner, |key| match key {
             "ITERM2_COOKIE" => Some("test_cookie".to_string()),
             "ITERM2_KEY" => Some("test_key".to_string()),
             _ => None,
@@ -128,7 +138,7 @@ mod tests {
         let runner = MockRunner {
             result: Ok("abc123 def456".to_string()),
         };
-        let creds = resolve_credentials_with_env(&runner, |key| match key {
+        let creds = resolve_credentials_with_env("test-app", &runner, |key| match key {
             "ITERM2_COOKIE" => Some("".to_string()),
             "ITERM2_KEY" => Some("".to_string()),
             _ => None,
@@ -144,7 +154,7 @@ mod tests {
             result: Ok("abc123 def456".to_string()),
         };
         let creds =
-            resolve_credentials_with_env(&runner, |_| None).unwrap();
+            resolve_credentials_with_env("test-app", &runner, |_| None).unwrap();
         assert_eq!(creds.cookie, "abc123");
         assert_eq!(creds.key, "def456");
     }
@@ -155,7 +165,7 @@ mod tests {
             result: Ok("abc123\ndef456".to_string()),
         };
         let creds =
-            resolve_credentials_with_env(&runner, |_| None).unwrap();
+            resolve_credentials_with_env("test-app", &runner, |_| None).unwrap();
         assert_eq!(creds.cookie, "abc123");
         assert_eq!(creds.key, "def456");
     }
@@ -166,7 +176,7 @@ mod tests {
             result: Err("connection refused".to_string()),
         };
         let err =
-            resolve_credentials_with_env(&runner, |_| None).unwrap_err();
+            resolve_credentials_with_env("test-app", &runner, |_| None).unwrap_err();
         assert!(err.to_string().contains("osascript failed"));
     }
 
@@ -176,8 +186,15 @@ mod tests {
             result: Ok("justonetoken".to_string()),
         };
         let err =
-            resolve_credentials_with_env(&runner, |_| None).unwrap_err();
+            resolve_credentials_with_env("test-app", &runner, |_| None).unwrap_err();
         assert!(err.to_string().contains("Failed to parse"));
+    }
+
+    #[test]
+    fn applescript_request_escapes_quotes() {
+        let script = applescript_request(r#"my "app""#);
+        assert!(script.contains(r#"my \"app\""#));
+        assert!(script.contains("for app named"));
     }
 
     #[test]

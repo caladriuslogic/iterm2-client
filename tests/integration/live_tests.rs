@@ -7,7 +7,7 @@ use std::sync::Arc;
 #[tokio::test]
 #[ignore]
 async fn connect_and_list_sessions() {
-    let conn = iterm2_client::Connection::connect("iterm2-client-test")
+    let conn = iterm2_client::Connection::connect_unix("iterm2-client-test")
         .await
         .unwrap();
     let app = iterm2_client::App::new(conn);
@@ -31,7 +31,7 @@ async fn connect_and_list_sessions() {
 #[tokio::test]
 #[ignore]
 async fn send_text_and_read_buffer() {
-    let conn = iterm2_client::Connection::connect("iterm2-client-test")
+    let conn = iterm2_client::Connection::connect_unix("iterm2-client-test")
         .await
         .unwrap();
     let app = iterm2_client::App::new(conn);
@@ -59,7 +59,7 @@ async fn send_text_and_read_buffer() {
 #[tokio::test]
 #[ignore]
 async fn create_tab_and_close() {
-    let conn = iterm2_client::Connection::connect("iterm2-client-test")
+    let conn = iterm2_client::Connection::connect_unix("iterm2-client-test")
         .await
         .unwrap();
     let app = iterm2_client::App::new(conn);
@@ -74,7 +74,7 @@ async fn create_tab_and_close() {
 #[tokio::test]
 #[ignore]
 async fn split_pane_and_close() {
-    let conn = iterm2_client::Connection::connect("iterm2-client-test")
+    let conn = iterm2_client::Connection::connect_unix("iterm2-client-test")
         .await
         .unwrap();
     let conn = Arc::new(conn);
@@ -102,7 +102,7 @@ async fn split_pane_and_close() {
 #[tokio::test]
 #[ignore]
 async fn get_set_variables() {
-    let conn = iterm2_client::Connection::connect("iterm2-client-test")
+    let conn = iterm2_client::Connection::connect_unix("iterm2-client-test")
         .await
         .unwrap();
     let conn = Arc::new(conn);
@@ -126,7 +126,7 @@ async fn get_set_variables() {
 #[tokio::test]
 #[ignore]
 async fn subscribe_notifications() {
-    let conn = iterm2_client::Connection::connect("iterm2-client-test")
+    let conn = iterm2_client::Connection::connect_unix("iterm2-client-test")
         .await
         .unwrap();
     let conn = Arc::new(conn);

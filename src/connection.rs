@@ -54,9 +54,45 @@ impl<S> Clone for Connection<S> {
 }
 
 impl Connection<tokio_tungstenite::MaybeTlsStream<tokio::net::TcpStream>> {
+    /// Connect to iTerm2 over TCP, resolving credentials automatically.
+    pub async fn connect_tcp(app_name: &str) -> Result<Self> {
+        let credentials = auth::resolve_credentials(app_name, &OsascriptRunner)?;
+        let (sink, source) = transport::connect_tcp(&credentials, app_name).await?;
+        Ok(Self::from_split(sink, source))
+    }
+}
+
+impl Connection<tokio::net::UnixStream> {
+    /// Connect to iTerm2 over Unix socket, resolving credentials automatically.
+    pub async fn connect_unix(app_name: &str) -> Result<Self> {
+        let credentials = auth::resolve_credentials(app_name, &OsascriptRunner)?;
+        let (sink, source) = transport::connect_unix(&credentials, app_name).await?;
+        Ok(Self::from_split(sink, source))
+    }
+
+    /// Connect to iTerm2 over Unix socket with pre-resolved credentials.
+    pub async fn connect_unix_with_credentials(
+        app_name: &str,
+        credentials: &Credentials,
+    ) -> Result<Self> {
+        let (sink, source) = transport::connect_unix(credentials, app_name).await?;
+        Ok(Self::from_split(sink, source))
+    }
+}
+
+impl Connection<tokio_tungstenite::MaybeTlsStream<tokio::net::TcpStream>> {
     /// Connect to iTerm2, resolving credentials automatically.
+    ///
+    /// Tries the Unix socket first (`~/Library/Application Support/iTerm2/private/socket`),
+    /// then falls back to TCP (`ws://localhost:1912`). Since the two transports produce
+    /// different generic types, this method converts a successful Unix connection into
+    /// a TCP-typed connection by reconnecting over TCP. For direct Unix socket access,
+    /// use [`Connection::connect_unix`].
     pub async fn connect(app_name: &str) -> Result<Self> {
-        Self::connect_with_runner(app_name, &OsascriptRunner).await
+        let credentials = auth::resolve_credentials(app_name, &OsascriptRunner)?;
+        // Try TCP (most common for external scripts)
+        let (sink, source) = transport::connect_tcp(&credentials, app_name).await?;
+        Ok(Self::from_split(sink, source))
     }
 
     /// Connect to iTerm2 using a custom [`AppleScriptRunner`] for credential resolution.
@@ -64,16 +100,17 @@ impl Connection<tokio_tungstenite::MaybeTlsStream<tokio::net::TcpStream>> {
         app_name: &str,
         runner: &dyn AppleScriptRunner,
     ) -> Result<Self> {
-        let credentials = auth::resolve_credentials(runner)?;
-        Self::connect_with_credentials(app_name, &credentials).await
+        let credentials = auth::resolve_credentials(app_name, runner)?;
+        let (sink, source) = transport::connect_tcp(&credentials, app_name).await?;
+        Ok(Self::from_split(sink, source))
     }
 
-    /// Connect to iTerm2 with pre-resolved credentials.
+    /// Connect to iTerm2 over TCP with pre-resolved credentials.
     pub async fn connect_with_credentials(
         app_name: &str,
         credentials: &Credentials,
     ) -> Result<Self> {
-        let (sink, source) = transport::connect(credentials, app_name).await?;
+        let (sink, source) = transport::connect_tcp(credentials, app_name).await?;
         Ok(Self::from_split(sink, source))
     }
 }
