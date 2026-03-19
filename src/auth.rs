@@ -1,8 +1,17 @@
+//! Authentication for the iTerm2 API.
+//!
+//! Credentials are resolved from `ITERM2_COOKIE` / `ITERM2_KEY` environment
+//! variables, falling back to an AppleScript request to iTerm2 via `osascript`.
+
 use crate::error::{Error, Result};
 use std::env;
 use std::fmt;
 use zeroize::{Zeroize, ZeroizeOnDrop};
 
+/// Cookie and key pair used to authenticate with the iTerm2 WebSocket API.
+///
+/// Credentials are zeroized from memory when dropped. The `Debug` implementation
+/// redacts the actual values to prevent accidental credential leakage in logs.
 #[derive(Zeroize, ZeroizeOnDrop)]
 pub struct Credentials {
     pub cookie: String,
@@ -18,10 +27,12 @@ impl fmt::Debug for Credentials {
     }
 }
 
+/// Trait for running AppleScript commands. Inject a mock in tests.
 pub trait AppleScriptRunner: Send + Sync {
     fn run_osascript(&self, script: &str) -> std::result::Result<String, String>;
 }
 
+/// Production [`AppleScriptRunner`] that invokes `/usr/bin/osascript`.
 pub struct OsascriptRunner;
 
 impl AppleScriptRunner for OsascriptRunner {
@@ -42,6 +53,10 @@ impl AppleScriptRunner for OsascriptRunner {
 
 const APPLESCRIPT_REQUEST: &str = r#"tell application "iTerm2" to request cookie and key"#;
 
+/// Resolve iTerm2 API credentials.
+///
+/// Checks `ITERM2_COOKIE` and `ITERM2_KEY` environment variables first,
+/// then falls back to requesting credentials from iTerm2 via AppleScript.
 pub fn resolve_credentials(runner: &dyn AppleScriptRunner) -> Result<Credentials> {
     resolve_credentials_with_env(runner, |k| env::var(k).ok())
 }

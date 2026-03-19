@@ -1,3 +1,5 @@
+//! High-level handle to an iTerm2 tab.
+
 use crate::connection::Connection;
 use crate::error::{Error, Result};
 use crate::proto;
@@ -6,12 +8,15 @@ use crate::validate;
 use std::sync::Arc;
 use tokio::io::{AsyncRead, AsyncWrite};
 
+/// A handle to an iTerm2 tab.
 pub struct Tab<S> {
+    /// The unique tab identifier.
     pub id: String,
     conn: Arc<Connection<S>>,
 }
 
 impl<S: AsyncRead + AsyncWrite + Unpin + Send + 'static> Tab<S> {
+    /// Create a tab handle. Validates the tab ID.
     pub fn new(id: String, conn: Arc<Connection<S>>) -> Result<Self> {
         validate::identifier(&id, "tab")?;
         Ok(Self { id, conn })
@@ -21,6 +26,7 @@ impl<S: AsyncRead + AsyncWrite + Unpin + Send + 'static> Tab<S> {
         Self { id, conn }
     }
 
+    /// Activate this tab (select it in its window).
     pub async fn activate(&self) -> Result<()> {
         let resp = self.conn.call(request::activate_tab(&self.id)).await?;
         match resp.submessage {
@@ -33,6 +39,7 @@ impl<S: AsyncRead + AsyncWrite + Unpin + Send + 'static> Tab<S> {
         }
     }
 
+    /// Close this tab. If `force` is true, skip the confirmation prompt.
     pub async fn close(&self, force: bool) -> Result<()> {
         let resp = self
             .conn
@@ -46,6 +53,7 @@ impl<S: AsyncRead + AsyncWrite + Unpin + Send + 'static> Tab<S> {
         }
     }
 
+    /// Get a tab variable by name. Returns JSON-encoded value.
     pub async fn get_variable(&self, name: &str) -> Result<Option<String>> {
         let resp = self
             .conn
@@ -62,6 +70,7 @@ impl<S: AsyncRead + AsyncWrite + Unpin + Send + 'static> Tab<S> {
         }
     }
 
+    /// Get a reference to the underlying connection.
     pub fn connection(&self) -> &Connection<S> {
         &self.conn
     }

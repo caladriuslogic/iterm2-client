@@ -1,3 +1,5 @@
+//! High-level handle to an iTerm2 window.
+
 use crate::connection::Connection;
 use crate::error::{Error, Result};
 use crate::proto;
@@ -6,12 +8,15 @@ use crate::validate;
 use std::sync::Arc;
 use tokio::io::{AsyncRead, AsyncWrite};
 
+/// A handle to an iTerm2 window.
 pub struct Window<S> {
+    /// The unique window identifier.
     pub id: String,
     conn: Arc<Connection<S>>,
 }
 
 impl<S: AsyncRead + AsyncWrite + Unpin + Send + 'static> Window<S> {
+    /// Create a window handle. Validates the window ID.
     pub fn new(id: String, conn: Arc<Connection<S>>) -> Result<Self> {
         validate::identifier(&id, "window")?;
         Ok(Self { id, conn })
@@ -21,6 +26,7 @@ impl<S: AsyncRead + AsyncWrite + Unpin + Send + 'static> Window<S> {
         Self { id, conn }
     }
 
+    /// Create a new tab in this window, optionally using a named profile.
     pub async fn create_tab(&self, profile_name: Option<&str>) -> Result<CreateTabResult> {
         let resp = self
             .conn
@@ -41,6 +47,7 @@ impl<S: AsyncRead + AsyncWrite + Unpin + Send + 'static> Window<S> {
         }
     }
 
+    /// Activate this window (bring it to the front).
     pub async fn activate(&self) -> Result<()> {
         let resp = self.conn.call(request::activate_window(&self.id)).await?;
         match resp.submessage {
@@ -53,6 +60,7 @@ impl<S: AsyncRead + AsyncWrite + Unpin + Send + 'static> Window<S> {
         }
     }
 
+    /// Close this window. If `force` is true, skip the confirmation prompt.
     pub async fn close(&self, force: bool) -> Result<()> {
         let resp = self
             .conn
@@ -66,6 +74,7 @@ impl<S: AsyncRead + AsyncWrite + Unpin + Send + 'static> Window<S> {
         }
     }
 
+    /// Get a window property (e.g. `"frame"`, `"fullscreen"`). Returns JSON-encoded value.
     pub async fn get_property(&self, name: &str) -> Result<Option<String>> {
         let resp = self
             .conn
@@ -82,6 +91,7 @@ impl<S: AsyncRead + AsyncWrite + Unpin + Send + 'static> Window<S> {
         }
     }
 
+    /// Set a window property. Value must be valid JSON.
     pub async fn set_property(&self, name: &str, json_value: &str) -> Result<()> {
         validate::json_value(json_value)?;
         let resp = self
@@ -98,6 +108,7 @@ impl<S: AsyncRead + AsyncWrite + Unpin + Send + 'static> Window<S> {
         }
     }
 
+    /// Get a window variable by name. Returns JSON-encoded value.
     pub async fn get_variable(&self, name: &str) -> Result<Option<String>> {
         let resp = self
             .conn
@@ -117,11 +128,13 @@ impl<S: AsyncRead + AsyncWrite + Unpin + Send + 'static> Window<S> {
         }
     }
 
+    /// Get a reference to the underlying connection.
     pub fn connection(&self) -> &Connection<S> {
         &self.conn
     }
 }
 
+/// Result of [`Window::create_tab`].
 pub struct CreateTabResult {
     pub tab_id: Option<String>,
     pub session_id: Option<String>,

@@ -1,14 +1,24 @@
+//! Notification streams with typed filtering.
+//!
+//! Use `NotificationStream` for raw notifications, or typed helpers like
+//! `keystroke_notifications` and `new_session_notifications` to filter for
+//! specific event types.
+
 use crate::proto;
 use futures_util::Stream;
 use std::pin::Pin;
 use std::task::{Context, Poll};
 use tokio::sync::broadcast;
 
+/// A stream of all iTerm2 notifications (unfiltered).
+///
+/// Wraps a `broadcast::Receiver` and implements `futures_util::Stream`.
 pub struct NotificationStream {
     rx: broadcast::Receiver<proto::Notification>,
 }
 
 impl NotificationStream {
+    /// Create a new notification stream from a broadcast receiver.
     pub fn new(rx: broadcast::Receiver<proto::Notification>) -> Self {
         Self { rx }
     }
@@ -37,7 +47,7 @@ impl Stream for NotificationStream {
     }
 }
 
-/// Helper to create a typed notification stream that filters for specific notification types.
+/// Stream of keystroke notifications, filtering out all other types.
 pub fn keystroke_notifications(
     rx: broadcast::Receiver<proto::Notification>,
 ) -> impl Stream<Item = proto::KeystrokeNotification> {
@@ -56,6 +66,7 @@ pub fn keystroke_notifications(
     })
 }
 
+/// Stream of screen update notifications.
 pub fn screen_update_notifications(
     rx: broadcast::Receiver<proto::Notification>,
 ) -> impl Stream<Item = proto::ScreenUpdateNotification> {
@@ -74,6 +85,7 @@ pub fn screen_update_notifications(
     })
 }
 
+/// Stream of prompt notifications (prompt shown, command started, command ended).
 pub fn prompt_notifications(
     rx: broadcast::Receiver<proto::Notification>,
 ) -> impl Stream<Item = proto::PromptNotification> {
@@ -92,6 +104,7 @@ pub fn prompt_notifications(
     })
 }
 
+/// Stream of new session creation notifications.
 pub fn new_session_notifications(
     rx: broadcast::Receiver<proto::Notification>,
 ) -> impl Stream<Item = proto::NewSessionNotification> {
@@ -110,6 +123,7 @@ pub fn new_session_notifications(
     })
 }
 
+/// Stream of session termination notifications.
 pub fn terminate_session_notifications(
     rx: broadcast::Receiver<proto::Notification>,
 ) -> impl Stream<Item = proto::TerminateSessionNotification> {
@@ -128,6 +142,7 @@ pub fn terminate_session_notifications(
     })
 }
 
+/// Stream of focus change notifications (window, tab, session, or app focus).
 pub fn focus_changed_notifications(
     rx: broadcast::Receiver<proto::Notification>,
 ) -> impl Stream<Item = proto::FocusChangedNotification> {
@@ -146,6 +161,7 @@ pub fn focus_changed_notifications(
     })
 }
 
+/// Stream of layout change notifications (windows/tabs/sessions restructured).
 pub fn layout_changed_notifications(
     rx: broadcast::Receiver<proto::Notification>,
 ) -> impl Stream<Item = proto::LayoutChangedNotification> {
@@ -164,6 +180,7 @@ pub fn layout_changed_notifications(
     })
 }
 
+/// Stream of variable change notifications.
 pub fn variable_changed_notifications(
     rx: broadcast::Receiver<proto::Notification>,
 ) -> impl Stream<Item = proto::VariableChangedNotification> {
@@ -182,6 +199,7 @@ pub fn variable_changed_notifications(
     })
 }
 
+/// Stream of custom escape sequence notifications (OSC 1337).
 pub fn custom_escape_sequence_notifications(
     rx: broadcast::Receiver<proto::Notification>,
 ) -> impl Stream<Item = proto::CustomEscapeSequenceNotification> {

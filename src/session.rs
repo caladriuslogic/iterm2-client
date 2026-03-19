@@ -1,3 +1,5 @@
+//! High-level handle to an iTerm2 session (terminal pane).
+
 use crate::connection::Connection;
 use crate::error::{Error, Result};
 use crate::proto;
@@ -6,13 +8,20 @@ use crate::validate;
 use std::sync::Arc;
 use tokio::io::{AsyncRead, AsyncWrite};
 
+/// A handle to an iTerm2 session (a single terminal pane).
+///
+/// Provides methods to send text, read the terminal buffer, split panes,
+/// manage variables/properties, and more.
 pub struct Session<S> {
+    /// The unique session identifier.
     pub id: String,
+    /// The session's title, if available.
     pub title: Option<String>,
     conn: Arc<Connection<S>>,
 }
 
 impl<S: AsyncRead + AsyncWrite + Unpin + Send + 'static> Session<S> {
+    /// Create a session handle. Validates the session ID.
     pub fn new(id: String, title: Option<String>, conn: Arc<Connection<S>>) -> Result<Self> {
         validate::identifier(&id, "session")?;
         Ok(Self { id, title, conn })
@@ -23,6 +32,7 @@ impl<S: AsyncRead + AsyncWrite + Unpin + Send + 'static> Session<S> {
         Self { id, title, conn }
     }
 
+    /// Send text to the session as if typed on the keyboard.
     pub async fn send_text(&self, text: &str) -> Result<()> {
         validate::text_len(text)?;
         let resp = self.conn.call(request::send_text(&self.id, text)).await?;
@@ -36,6 +46,7 @@ impl<S: AsyncRead + AsyncWrite + Unpin + Send + 'static> Session<S> {
         }
     }
 
+    /// Get the current visible screen contents as lines of text.
     pub async fn get_screen_contents(&self) -> Result<Vec<String>> {
         let resp = self
             .conn
@@ -55,6 +66,7 @@ impl<S: AsyncRead + AsyncWrite + Unpin + Send + 'static> Session<S> {
         }
     }
 
+    /// Get the last N lines from the scrollback buffer.
     pub async fn get_buffer_lines(&self, trailing_lines: i32) -> Result<Vec<String>> {
         let resp = self
             .conn
@@ -74,6 +86,7 @@ impl<S: AsyncRead + AsyncWrite + Unpin + Send + 'static> Session<S> {
         }
     }
 
+    /// Split this session's pane. Returns the new session ID(s).
     pub async fn split(
         &self,
         direction: proto::split_pane_request::SplitDirection,
@@ -95,6 +108,7 @@ impl<S: AsyncRead + AsyncWrite + Unpin + Send + 'static> Session<S> {
         }
     }
 
+    /// Get a session variable by name. Returns JSON-encoded value.
     pub async fn get_variable(&self, name: &str) -> Result<Option<String>> {
         let resp = self
             .conn
@@ -114,6 +128,7 @@ impl<S: AsyncRead + AsyncWrite + Unpin + Send + 'static> Session<S> {
         }
     }
 
+    /// Set a session variable. Name must start with `user.`. Value must be valid JSON.
     pub async fn set_variable(&self, name: &str, json_value: &str) -> Result<()> {
         validate::json_value(json_value)?;
         let resp = self
@@ -133,6 +148,7 @@ impl<S: AsyncRead + AsyncWrite + Unpin + Send + 'static> Session<S> {
         }
     }
 
+    /// Get profile properties for this session.
     pub async fn get_profile_property(&self, keys: Vec<String>) -> Result<Vec<proto::ProfileProperty>> {
         let resp = self
             .conn
@@ -149,6 +165,7 @@ impl<S: AsyncRead + AsyncWrite + Unpin + Send + 'static> Session<S> {
         }
     }
 
+    /// Set a profile property on this session's copy of the profile. Value must be valid JSON.
     pub async fn set_profile_property(&self, key: &str, json_value: &str) -> Result<()> {
         validate::json_value(json_value)?;
         let resp = self
@@ -167,6 +184,7 @@ impl<S: AsyncRead + AsyncWrite + Unpin + Send + 'static> Session<S> {
         }
     }
 
+    /// Inject bytes into the terminal as if produced by the running program.
     pub async fn inject(&self, data: Vec<u8>) -> Result<()> {
         let resp = self
             .conn
@@ -189,6 +207,7 @@ impl<S: AsyncRead + AsyncWrite + Unpin + Send + 'static> Session<S> {
         }
     }
 
+    /// Restart the session's shell process.
     pub async fn restart(&self, only_if_exited: bool) -> Result<()> {
         let resp = self
             .conn
@@ -204,6 +223,7 @@ impl<S: AsyncRead + AsyncWrite + Unpin + Send + 'static> Session<S> {
         }
     }
 
+    /// Close this session. If `force` is true, skip the confirmation prompt.
     pub async fn close(&self, force: bool) -> Result<()> {
         let resp = self
             .conn
@@ -217,6 +237,7 @@ impl<S: AsyncRead + AsyncWrite + Unpin + Send + 'static> Session<S> {
         }
     }
 
+    /// Activate this session (bring its window to front and select it).
     pub async fn activate(&self) -> Result<()> {
         let resp = self
             .conn
@@ -232,6 +253,7 @@ impl<S: AsyncRead + AsyncWrite + Unpin + Send + 'static> Session<S> {
         }
     }
 
+    /// Get metadata about the current shell prompt (command, working directory, state).
     pub async fn get_prompt(&self) -> Result<proto::GetPromptResponse> {
         let resp = self.conn.call(request::get_prompt(&self.id)).await?;
         match resp.submessage {
@@ -242,6 +264,7 @@ impl<S: AsyncRead + AsyncWrite + Unpin + Send + 'static> Session<S> {
         }
     }
 
+    /// Get a reference to the underlying connection.
     pub fn connection(&self) -> &Connection<S> {
         &self.conn
     }

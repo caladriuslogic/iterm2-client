@@ -1,3 +1,9 @@
+//! Core connection to iTerm2.
+//!
+//! [`Connection`] manages a WebSocket connection, dispatching responses to
+//! pending requests and broadcasting spontaneous notifications. It is
+//! `Clone`-friendly via `Arc` and safe to share across tasks.
+
 use crate::auth::{self, AppleScriptRunner, Credentials, OsascriptRunner};
 use crate::error::{self, Error, Result};
 use crate::proto;
@@ -18,6 +24,10 @@ const MAX_PENDING_REQUESTS: usize = 4096;
 
 type PendingMap = HashMap<i64, oneshot::Sender<proto::ServerOriginatedMessage>>;
 
+/// A WebSocket connection to iTerm2.
+///
+/// Manages request-response matching and notification dispatch via a background
+/// task. Clone-friendly — all clones share the same underlying connection.
 pub struct Connection<S> {
     inner: Arc<Inner<S>>,
     shared: Arc<Shared>,
@@ -44,10 +54,12 @@ impl<S> Clone for Connection<S> {
 }
 
 impl Connection<tokio_tungstenite::MaybeTlsStream<tokio::net::TcpStream>> {
+    /// Connect to iTerm2, resolving credentials automatically.
     pub async fn connect(app_name: &str) -> Result<Self> {
         Self::connect_with_runner(app_name, &OsascriptRunner).await
     }
 
+    /// Connect to iTerm2 using a custom [`AppleScriptRunner`] for credential resolution.
     pub async fn connect_with_runner(
         app_name: &str,
         runner: &dyn AppleScriptRunner,
@@ -56,6 +68,7 @@ impl Connection<tokio_tungstenite::MaybeTlsStream<tokio::net::TcpStream>> {
         Self::connect_with_credentials(app_name, &credentials).await
     }
 
+    /// Connect to iTerm2 with pre-resolved credentials.
     pub async fn connect_with_credentials(
         app_name: &str,
         credentials: &Credentials,
@@ -66,6 +79,9 @@ impl Connection<tokio_tungstenite::MaybeTlsStream<tokio::net::TcpStream>> {
 }
 
 impl<S: AsyncRead + AsyncWrite + Unpin + Send + 'static> Connection<S> {
+    /// Create a connection from pre-established WebSocket sink and source streams.
+    ///
+    /// This is useful for testing with mock servers or custom transports.
     pub fn from_split(sink: transport::WsSink<S>, source: transport::WsSource<S>) -> Self {
         let (notification_tx, _) = broadcast::channel(NOTIFICATION_CHANNEL_SIZE);
         let shared = Arc::new(Shared {
@@ -85,6 +101,7 @@ impl<S: AsyncRead + AsyncWrite + Unpin + Send + 'static> Connection<S> {
         Connection { inner, shared }
     }
 
+    /// Send a request and wait for the matching response (10-second default timeout).
     pub async fn call(
         &self,
         request: proto::ClientOriginatedMessage,
@@ -92,6 +109,7 @@ impl<S: AsyncRead + AsyncWrite + Unpin + Send + 'static> Connection<S> {
         self.call_with_timeout(request, DEFAULT_TIMEOUT).await
     }
 
+    /// Send a request and wait for the matching response with a custom timeout.
     pub async fn call_with_timeout(
         &self,
         mut request: proto::ClientOriginatedMessage,
@@ -169,6 +187,10 @@ impl<S: AsyncRead + AsyncWrite + Unpin + Send + 'static> Connection<S> {
         }
     }
 
+    /// Subscribe to spontaneous notifications from iTerm2.
+    ///
+    /// Returns a broadcast receiver. Multiple subscribers can be active concurrently.
+    /// Use the helpers in [`crate::notification`] for typed filtering.
     pub fn subscribe_notifications(&self) -> broadcast::Receiver<proto::Notification> {
         self.shared.notification_tx.subscribe()
     }

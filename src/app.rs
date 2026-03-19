@@ -1,3 +1,5 @@
+//! High-level entry point for the iTerm2 API.
+
 use crate::connection::Connection;
 use crate::error::{Error, Result};
 use crate::proto;
@@ -8,21 +10,28 @@ use crate::window::Window;
 use std::sync::Arc;
 use tokio::io::{AsyncRead, AsyncWrite};
 
+/// High-level handle to the iTerm2 application.
+///
+/// Provides ergonomic methods for listing sessions, creating tabs, managing
+/// transactions, and subscribing to notifications. Wraps an `Arc<Connection>`.
 pub struct App<S> {
     conn: Arc<Connection<S>>,
 }
 
 impl<S: AsyncRead + AsyncWrite + Unpin + Send + 'static> App<S> {
+    /// Create an `App` from a [`Connection`].
     pub fn new(conn: Connection<S>) -> Self {
         Self {
             conn: Arc::new(conn),
         }
     }
 
+    /// Create an `App` from a shared connection.
     pub fn from_arc(conn: Arc<Connection<S>>) -> Self {
         Self { conn }
     }
 
+    /// List all windows, tabs, and sessions in iTerm2.
     pub async fn list_sessions(&self) -> Result<ListSessionsResult<S>> {
         let resp = self.conn.call(request::list_sessions()).await?;
         match resp.submessage {
@@ -72,6 +81,7 @@ impl<S: AsyncRead + AsyncWrite + Unpin + Send + 'static> App<S> {
         }
     }
 
+    /// Create a new tab, optionally in an existing window with a named profile.
     pub async fn create_tab(
         &self,
         profile_name: Option<&str>,
@@ -99,6 +109,7 @@ impl<S: AsyncRead + AsyncWrite + Unpin + Send + 'static> App<S> {
         }
     }
 
+    /// Get the current focus state (active window, tab, session).
     pub async fn focus(&self) -> Result<Vec<proto::FocusChangedNotification>> {
         let resp = self.conn.call(request::focus()).await?;
         match resp.submessage {
@@ -111,6 +122,7 @@ impl<S: AsyncRead + AsyncWrite + Unpin + Send + 'static> App<S> {
         }
     }
 
+    /// Activate the iTerm2 application, optionally raising all windows.
     pub async fn activate(&self, raise_all: bool, ignoring_other_apps: bool) -> Result<()> {
         let resp = self
             .conn
@@ -126,6 +138,7 @@ impl<S: AsyncRead + AsyncWrite + Unpin + Send + 'static> App<S> {
         }
     }
 
+    /// List profiles, optionally filtering by properties and GUIDs.
     pub async fn list_profiles(
         &self,
         properties: Vec<String>,
@@ -143,6 +156,7 @@ impl<S: AsyncRead + AsyncWrite + Unpin + Send + 'static> App<S> {
         }
     }
 
+    /// Begin a transaction. The app's main loop freezes until [`end_transaction`](Self::end_transaction) is called.
     pub async fn begin_transaction(&self) -> Result<()> {
         let resp = self.conn.call(request::begin_transaction()).await?;
         match resp.submessage {
@@ -155,6 +169,7 @@ impl<S: AsyncRead + AsyncWrite + Unpin + Send + 'static> App<S> {
         }
     }
 
+    /// End a previously started transaction.
     pub async fn end_transaction(&self) -> Result<()> {
         let resp = self.conn.call(request::end_transaction()).await?;
         match resp.submessage {
@@ -167,6 +182,7 @@ impl<S: AsyncRead + AsyncWrite + Unpin + Send + 'static> App<S> {
         }
     }
 
+    /// List available color preset names.
     pub async fn list_color_presets(&self) -> Result<Vec<String>> {
         let resp = self.conn.call(request::list_color_presets()).await?;
         match resp.submessage {
@@ -183,6 +199,7 @@ impl<S: AsyncRead + AsyncWrite + Unpin + Send + 'static> App<S> {
         }
     }
 
+    /// List saved window arrangement names.
     pub async fn list_arrangements(&self) -> Result<Vec<String>> {
         let resp = self.conn.call(request::list_arrangements()).await?;
         match resp.submessage {
@@ -196,6 +213,7 @@ impl<S: AsyncRead + AsyncWrite + Unpin + Send + 'static> App<S> {
         }
     }
 
+    /// Get broadcast domains (groups of sessions that receive the same input).
     pub async fn get_broadcast_domains(&self) -> Result<Vec<proto::BroadcastDomain>> {
         let resp = self.conn.call(request::get_broadcast_domains()).await?;
         match resp.submessage {
@@ -208,14 +226,17 @@ impl<S: AsyncRead + AsyncWrite + Unpin + Send + 'static> App<S> {
         }
     }
 
+    /// Subscribe to spontaneous notifications from iTerm2.
     pub fn subscribe_notifications(&self) -> tokio::sync::broadcast::Receiver<proto::Notification> {
         self.conn.subscribe_notifications()
     }
 
+    /// Get a reference to the underlying connection.
     pub fn connection(&self) -> &Connection<S> {
         &self.conn
     }
 
+    /// Get a shared reference to the underlying connection.
     pub fn connection_arc(&self) -> Arc<Connection<S>> {
         Arc::clone(&self.conn)
     }
@@ -247,21 +268,25 @@ fn collect_sessions_from_tree<S: AsyncRead + AsyncWrite + Unpin + Send + 'static
     sessions
 }
 
+/// Result of [`App::list_sessions`], containing all windows and buried sessions.
 pub struct ListSessionsResult<S> {
     pub windows: Vec<WindowInfo<S>>,
     pub buried_sessions: Vec<Session<S>>,
 }
 
+/// A window and its tabs, as returned by [`App::list_sessions`].
 pub struct WindowInfo<S> {
     pub window: Window<S>,
     pub tabs: Vec<TabInfo<S>>,
 }
 
+/// A tab and its sessions, as returned by [`App::list_sessions`].
 pub struct TabInfo<S> {
     pub tab: Tab<S>,
     pub sessions: Vec<Session<S>>,
 }
 
+/// Result of [`App::create_tab`], containing the new window, tab, and session.
 pub struct CreateTabResult<S> {
     pub window: Window<S>,
     pub tab: Tab<S>,

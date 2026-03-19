@@ -1,3 +1,9 @@
+//! WebSocket transport for connecting to iTerm2.
+//!
+//! Supports TCP (`ws://localhost:1912`) and Unix socket connections.
+//! Use `connect` for the default TCP transport, or `connect_unix` for the
+//! Unix domain socket.
+
 use crate::auth::Credentials;
 use crate::error::{Error, Result};
 use futures_util::stream::{SplitSink, SplitStream};
@@ -20,6 +26,7 @@ fn unix_socket_path() -> std::path::PathBuf {
         .join("Library/Application Support/iTerm2/private/socket")
 }
 
+/// Connect to iTerm2 over TCP WebSocket at `ws://localhost:1912`.
 pub async fn connect_tcp(
     credentials: &Credentials,
     app_name: &str,
@@ -32,6 +39,7 @@ pub async fn connect_tcp(
     Ok(ws_stream.split())
 }
 
+/// Connect to iTerm2 over a Unix domain socket.
 pub async fn connect_unix(
     credentials: &Credentials,
     app_name: &str,
@@ -41,6 +49,9 @@ pub async fn connect_unix(
     connect_with_stream(stream, credentials, app_name).await
 }
 
+/// Upgrade an existing `AsyncRead + AsyncWrite` stream to a WebSocket connection.
+///
+/// Useful for testing with mock streams or custom transports.
 pub async fn connect_with_stream<S>(
     stream: S,
     credentials: &Credentials,
@@ -57,6 +68,7 @@ where
     Ok(ws_stream.split())
 }
 
+/// Connect to iTerm2 using the default TCP transport.
 pub async fn connect(
     credentials: &Credentials,
     app_name: &str,
