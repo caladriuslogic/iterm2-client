@@ -115,6 +115,7 @@ impl<S: AsyncRead + AsyncWrite + Unpin + Send + 'static> Session<S> {
     }
 
     pub async fn set_variable(&self, name: &str, json_value: &str) -> Result<()> {
+        validate::json_value(json_value)?;
         let resp = self
             .conn
             .call(request::set_variable_session(
@@ -149,6 +150,7 @@ impl<S: AsyncRead + AsyncWrite + Unpin + Send + 'static> Session<S> {
     }
 
     pub async fn set_profile_property(&self, key: &str, json_value: &str) -> Result<()> {
+        validate::json_value(json_value)?;
         let resp = self
             .conn
             .call(request::set_profile_property_session(

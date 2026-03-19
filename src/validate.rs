@@ -43,6 +43,14 @@ pub fn text_len(text: &str) -> Result<()> {
     Ok(())
 }
 
+/// Validate that a string is syntactically valid JSON.
+pub fn json_value(value: &str) -> Result<()> {
+    serde_json::from_str::<serde_json::Value>(value).map_err(|e| {
+        Error::Api(format!("Invalid JSON value: {e}"))
+    })?;
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -89,5 +97,27 @@ mod tests {
         let big = "x".repeat(MAX_TEXT_LEN + 1);
         let err = text_len(&big).unwrap_err();
         assert!(err.to_string().contains("too long"));
+    }
+
+    #[test]
+    fn valid_json_values() {
+        json_value(r#""hello""#).unwrap();
+        json_value("42").unwrap();
+        json_value("true").unwrap();
+        json_value("null").unwrap();
+        json_value(r#"{"key": "value"}"#).unwrap();
+        json_value(r#"[1, 2, 3]"#).unwrap();
+    }
+
+    #[test]
+    fn invalid_json_value() {
+        let err = json_value("not valid json").unwrap_err();
+        assert!(err.to_string().contains("Invalid JSON"));
+    }
+
+    #[test]
+    fn empty_string_is_invalid_json() {
+        let err = json_value("").unwrap_err();
+        assert!(err.to_string().contains("Invalid JSON"));
     }
 }

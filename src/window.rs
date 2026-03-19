@@ -83,6 +83,7 @@ impl<S: AsyncRead + AsyncWrite + Unpin + Send + 'static> Window<S> {
     }
 
     pub async fn set_property(&self, name: &str, json_value: &str) -> Result<()> {
+        validate::json_value(json_value)?;
         let resp = self
             .conn
             .call(request::set_property_window(&self.id, name, json_value))
