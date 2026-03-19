@@ -1,7 +1,9 @@
 use crate::error::{Error, Result};
 use std::env;
 use std::fmt;
+use zeroize::{Zeroize, ZeroizeOnDrop};
 
+#[derive(Zeroize, ZeroizeOnDrop)]
 pub struct Credentials {
     pub cookie: String,
     pub key: String,

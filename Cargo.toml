@@ -12,6 +12,7 @@ prost = "0.13"
 thiserror = "2"
 tokio = { version = "1", features = ["net", "process", "sync", "time", "rt-multi-thread", "macros", "io-util"] }
 tokio-tungstenite = "0.26"
+zeroize = { version = "1", features = ["derive"] }
 
 [build-dependencies]
 prost-build = "0.13"

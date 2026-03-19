@@ -95,7 +95,7 @@ async fn split_pane_and_close() {
 
     // Clean up the new session
     let new_session =
-        iterm2_client::Session::new(new_ids[0].clone(), None, Arc::clone(&conn));
+        iterm2_client::Session::new(new_ids[0].clone(), None, Arc::clone(&conn)).unwrap();
     new_session.close(true).await.unwrap();
 }
 

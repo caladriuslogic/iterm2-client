@@ -5,6 +5,7 @@ pub mod transport;
 pub mod connection;
 pub mod request;
 pub mod notification;
+pub mod validate;
 pub mod session;
 pub mod tab;
 pub mod window;

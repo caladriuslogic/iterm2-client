@@ -178,7 +178,7 @@ async fn app_from_arc() {
 async fn session_send_text_ok() {
     let server = MockServer::start(mock_server::echo_ok_handler()).await;
     let conn = Arc::new(mock_server::connect_to_mock(server.addr).await);
-    let session = iterm2_client::Session::new("s1".to_string(), None, conn);
+    let session = iterm2_client::Session::new("s1".to_string(), None, conn).unwrap();
 
     session.send_text("hello\n").await.unwrap();
 
@@ -189,7 +189,7 @@ async fn session_send_text_ok() {
 async fn session_get_screen_contents() {
     let server = MockServer::start(mock_server::echo_ok_handler()).await;
     let conn = Arc::new(mock_server::connect_to_mock(server.addr).await);
-    let session = iterm2_client::Session::new("s1".to_string(), None, conn);
+    let session = iterm2_client::Session::new("s1".to_string(), None, conn).unwrap();
 
     let lines = session.get_screen_contents().await.unwrap();
     assert_eq!(lines, vec!["hello world"]);
@@ -201,7 +201,7 @@ async fn session_get_screen_contents() {
 async fn session_get_buffer_lines() {
     let server = MockServer::start(mock_server::echo_ok_handler()).await;
     let conn = Arc::new(mock_server::connect_to_mock(server.addr).await);
-    let session = iterm2_client::Session::new("s1".to_string(), None, conn);
+    let session = iterm2_client::Session::new("s1".to_string(), None, conn).unwrap();
 
     let lines = session.get_buffer_lines(10).await.unwrap();
     assert_eq!(lines, vec!["hello world"]);
@@ -213,7 +213,7 @@ async fn session_get_buffer_lines() {
 async fn session_split() {
     let server = MockServer::start(mock_server::echo_ok_handler()).await;
     let conn = Arc::new(mock_server::connect_to_mock(server.addr).await);
-    let session = iterm2_client::Session::new("s1".to_string(), None, conn);
+    let session = iterm2_client::Session::new("s1".to_string(), None, conn).unwrap();
 
     let new_ids = session
         .split(
@@ -232,7 +232,7 @@ async fn session_split() {
 async fn session_split_horizontal_with_profile() {
     let server = MockServer::start(mock_server::echo_ok_handler()).await;
     let conn = Arc::new(mock_server::connect_to_mock(server.addr).await);
-    let session = iterm2_client::Session::new("s1".to_string(), None, conn);
+    let session = iterm2_client::Session::new("s1".to_string(), None, conn).unwrap();
 
     let new_ids = session
         .split(
@@ -251,7 +251,7 @@ async fn session_split_horizontal_with_profile() {
 async fn session_get_variable() {
     let server = MockServer::start(mock_server::echo_ok_handler()).await;
     let conn = Arc::new(mock_server::connect_to_mock(server.addr).await);
-    let session = iterm2_client::Session::new("s1".to_string(), None, conn);
+    let session = iterm2_client::Session::new("s1".to_string(), None, conn).unwrap();
 
     let val = session.get_variable("user.test").await.unwrap();
     assert_eq!(val.as_deref(), Some(r#""test_value""#));
@@ -263,7 +263,7 @@ async fn session_get_variable() {
 async fn session_set_variable() {
     let server = MockServer::start(mock_server::echo_ok_handler()).await;
     let conn = Arc::new(mock_server::connect_to_mock(server.addr).await);
-    let session = iterm2_client::Session::new("s1".to_string(), None, conn);
+    let session = iterm2_client::Session::new("s1".to_string(), None, conn).unwrap();
 
     session.set_variable("user.test", r#""hello""#).await.unwrap();
 
@@ -274,7 +274,7 @@ async fn session_set_variable() {
 async fn session_get_profile_property() {
     let server = MockServer::start(mock_server::echo_ok_handler()).await;
     let conn = Arc::new(mock_server::connect_to_mock(server.addr).await);
-    let session = iterm2_client::Session::new("s1".to_string(), None, conn);
+    let session = iterm2_client::Session::new("s1".to_string(), None, conn).unwrap();
 
     let props = session
         .get_profile_property(vec!["Name".to_string()])
@@ -290,7 +290,7 @@ async fn session_get_profile_property() {
 async fn session_set_profile_property() {
     let server = MockServer::start(mock_server::echo_ok_handler()).await;
     let conn = Arc::new(mock_server::connect_to_mock(server.addr).await);
-    let session = iterm2_client::Session::new("s1".to_string(), None, conn);
+    let session = iterm2_client::Session::new("s1".to_string(), None, conn).unwrap();
 
     session
         .set_profile_property("Badge Text", r#""test""#)
@@ -304,7 +304,7 @@ async fn session_set_profile_property() {
 async fn session_inject() {
     let server = MockServer::start(mock_server::echo_ok_handler()).await;
     let conn = Arc::new(mock_server::connect_to_mock(server.addr).await);
-    let session = iterm2_client::Session::new("s1".to_string(), None, conn);
+    let session = iterm2_client::Session::new("s1".to_string(), None, conn).unwrap();
 
     session.inject(b"test data".to_vec()).await.unwrap();
 
@@ -315,7 +315,7 @@ async fn session_inject() {
 async fn session_restart() {
     let server = MockServer::start(mock_server::echo_ok_handler()).await;
     let conn = Arc::new(mock_server::connect_to_mock(server.addr).await);
-    let session = iterm2_client::Session::new("s1".to_string(), None, conn);
+    let session = iterm2_client::Session::new("s1".to_string(), None, conn).unwrap();
 
     session.restart(true).await.unwrap();
 
@@ -326,7 +326,7 @@ async fn session_restart() {
 async fn session_close() {
     let server = MockServer::start(mock_server::echo_ok_handler()).await;
     let conn = Arc::new(mock_server::connect_to_mock(server.addr).await);
-    let session = iterm2_client::Session::new("s1".to_string(), None, conn);
+    let session = iterm2_client::Session::new("s1".to_string(), None, conn).unwrap();
 
     session.close(true).await.unwrap();
 
@@ -337,7 +337,7 @@ async fn session_close() {
 async fn session_activate() {
     let server = MockServer::start(mock_server::echo_ok_handler()).await;
     let conn = Arc::new(mock_server::connect_to_mock(server.addr).await);
-    let session = iterm2_client::Session::new("s1".to_string(), None, conn);
+    let session = iterm2_client::Session::new("s1".to_string(), None, conn).unwrap();
 
     session.activate().await.unwrap();
 
@@ -348,7 +348,7 @@ async fn session_activate() {
 async fn session_get_prompt() {
     let server = MockServer::start(mock_server::echo_ok_handler()).await;
     let conn = Arc::new(mock_server::connect_to_mock(server.addr).await);
-    let session = iterm2_client::Session::new("s1".to_string(), None, conn);
+    let session = iterm2_client::Session::new("s1".to_string(), None, conn).unwrap();
 
     let prompt = session.get_prompt().await.unwrap();
     assert_eq!(prompt.working_directory.as_deref(), Some("/tmp"));
@@ -363,7 +363,7 @@ async fn session_get_prompt() {
 async fn session_connection_accessor() {
     let server = MockServer::start(mock_server::echo_ok_handler()).await;
     let conn = Arc::new(mock_server::connect_to_mock(server.addr).await);
-    let session = iterm2_client::Session::new("s1".to_string(), None, conn);
+    let session = iterm2_client::Session::new("s1".to_string(), None, conn).unwrap();
 
     let _conn = session.connection();
 
@@ -376,7 +376,7 @@ async fn session_connection_accessor() {
 async fn tab_activate() {
     let server = MockServer::start(mock_server::echo_ok_handler()).await;
     let conn = Arc::new(mock_server::connect_to_mock(server.addr).await);
-    let tab = iterm2_client::Tab::new("tab-1".to_string(), conn);
+    let tab = iterm2_client::Tab::new("tab-1".to_string(), conn).unwrap();
 
     tab.activate().await.unwrap();
 
@@ -387,7 +387,7 @@ async fn tab_activate() {
 async fn tab_close() {
     let server = MockServer::start(mock_server::echo_ok_handler()).await;
     let conn = Arc::new(mock_server::connect_to_mock(server.addr).await);
-    let tab = iterm2_client::Tab::new("tab-1".to_string(), conn);
+    let tab = iterm2_client::Tab::new("tab-1".to_string(), conn).unwrap();
 
     tab.close(true).await.unwrap();
 
@@ -398,7 +398,7 @@ async fn tab_close() {
 async fn tab_get_variable() {
     let server = MockServer::start(mock_server::echo_ok_handler()).await;
     let conn = Arc::new(mock_server::connect_to_mock(server.addr).await);
-    let tab = iterm2_client::Tab::new("tab-1".to_string(), conn);
+    let tab = iterm2_client::Tab::new("tab-1".to_string(), conn).unwrap();
 
     let val = tab.get_variable("user.test").await.unwrap();
     assert_eq!(val.as_deref(), Some(r#""test_value""#));
@@ -410,7 +410,7 @@ async fn tab_get_variable() {
 async fn tab_connection_accessor() {
     let server = MockServer::start(mock_server::echo_ok_handler()).await;
     let conn = Arc::new(mock_server::connect_to_mock(server.addr).await);
-    let tab = iterm2_client::Tab::new("tab-1".to_string(), conn);
+    let tab = iterm2_client::Tab::new("tab-1".to_string(), conn).unwrap();
 
     let _conn = tab.connection();
 
@@ -423,7 +423,7 @@ async fn tab_connection_accessor() {
 async fn window_create_tab() {
     let server = MockServer::start(mock_server::echo_ok_handler()).await;
     let conn = Arc::new(mock_server::connect_to_mock(server.addr).await);
-    let window = iterm2_client::Window::new("w1".to_string(), conn);
+    let window = iterm2_client::Window::new("w1".to_string(), conn).unwrap();
 
     let result = window.create_tab(None).await.unwrap();
     assert_eq!(result.session_id.as_deref(), Some("new-session-1"));
@@ -436,7 +436,7 @@ async fn window_create_tab() {
 async fn window_create_tab_with_profile() {
     let server = MockServer::start(mock_server::echo_ok_handler()).await;
     let conn = Arc::new(mock_server::connect_to_mock(server.addr).await);
-    let window = iterm2_client::Window::new("w1".to_string(), conn);
+    let window = iterm2_client::Window::new("w1".to_string(), conn).unwrap();
 
     let result = window.create_tab(Some("Default")).await.unwrap();
     assert!(result.session_id.is_some());
@@ -448,7 +448,7 @@ async fn window_create_tab_with_profile() {
 async fn window_activate() {
     let server = MockServer::start(mock_server::echo_ok_handler()).await;
     let conn = Arc::new(mock_server::connect_to_mock(server.addr).await);
-    let window = iterm2_client::Window::new("w1".to_string(), conn);
+    let window = iterm2_client::Window::new("w1".to_string(), conn).unwrap();
 
     window.activate().await.unwrap();
 
@@ -459,7 +459,7 @@ async fn window_activate() {
 async fn window_close() {
     let server = MockServer::start(mock_server::echo_ok_handler()).await;
     let conn = Arc::new(mock_server::connect_to_mock(server.addr).await);
-    let window = iterm2_client::Window::new("w1".to_string(), conn);
+    let window = iterm2_client::Window::new("w1".to_string(), conn).unwrap();
 
     window.close(true).await.unwrap();
 
@@ -470,7 +470,7 @@ async fn window_close() {
 async fn window_get_set_property() {
     let server = MockServer::start(mock_server::echo_ok_handler()).await;
     let conn = Arc::new(mock_server::connect_to_mock(server.addr).await);
-    let window = iterm2_client::Window::new("w1".to_string(), conn);
+    let window = iterm2_client::Window::new("w1".to_string(), conn).unwrap();
 
     let val = window.get_property("frame").await.unwrap();
     assert!(val.is_some());
@@ -484,7 +484,7 @@ async fn window_get_set_property() {
 async fn window_get_variable() {
     let server = MockServer::start(mock_server::echo_ok_handler()).await;
     let conn = Arc::new(mock_server::connect_to_mock(server.addr).await);
-    let window = iterm2_client::Window::new("w1".to_string(), conn);
+    let window = iterm2_client::Window::new("w1".to_string(), conn).unwrap();
 
     let val = window.get_variable("user.test").await.unwrap();
     assert_eq!(val.as_deref(), Some(r#""test_value""#));
@@ -496,7 +496,7 @@ async fn window_get_variable() {
 async fn window_connection_accessor() {
     let server = MockServer::start(mock_server::echo_ok_handler()).await;
     let conn = Arc::new(mock_server::connect_to_mock(server.addr).await);
-    let window = iterm2_client::Window::new("w1".to_string(), conn);
+    let window = iterm2_client::Window::new("w1".to_string(), conn).unwrap();
 
     let _conn = window.connection();
 
@@ -522,7 +522,7 @@ async fn non_ok_status_returns_error() {
 
     let server = MockServer::start(handler).await;
     let conn = Arc::new(mock_server::connect_to_mock(server.addr).await);
-    let session = iterm2_client::Session::new("bad-session".to_string(), None, conn);
+    let session = iterm2_client::Session::new("bad-session".to_string(), None, conn).unwrap();
 
     let err = session.send_text("hello").await.unwrap_err();
     assert!(err.to_string().contains("status"), "got: {err}");
@@ -549,7 +549,7 @@ async fn unexpected_response_returns_error() {
 
     let server = MockServer::start(handler).await;
     let conn = Arc::new(mock_server::connect_to_mock(server.addr).await);
-    let session = iterm2_client::Session::new("s1".to_string(), None, conn);
+    let session = iterm2_client::Session::new("s1".to_string(), None, conn).unwrap();
 
     let err = session.send_text("hello").await.unwrap_err();
     assert!(
@@ -577,7 +577,7 @@ async fn inject_non_ok_status_returns_error() {
 
     let server = MockServer::start(handler).await;
     let conn = Arc::new(mock_server::connect_to_mock(server.addr).await);
-    let session = iterm2_client::Session::new("s1".to_string(), None, conn);
+    let session = iterm2_client::Session::new("s1".to_string(), None, conn).unwrap();
 
     let err = session.inject(b"data".to_vec()).await.unwrap_err();
     assert!(err.to_string().contains("Inject failed"), "got: {err}");

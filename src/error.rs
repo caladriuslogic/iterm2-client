@@ -1,5 +1,7 @@
 use std::io;
 
+const MAX_SERVER_ERROR_LEN: usize = 512;
+
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     #[error("WebSocket error: {0}")]
@@ -28,6 +30,17 @@ pub enum Error {
 
     #[error("Unexpected response: expected {expected}, got different submessage")]
     UnexpectedResponse { expected: &'static str },
+}
+
+/// Create an Api error, truncating the server message to prevent
+/// unbounded or malicious strings from propagating through error chains.
+pub(crate) fn api_error(server_msg: &str) -> Error {
+    if server_msg.len() <= MAX_SERVER_ERROR_LEN {
+        Error::Api(server_msg.to_string())
+    } else {
+        let truncated: String = server_msg.chars().take(MAX_SERVER_ERROR_LEN).collect();
+        Error::Api(format!("{}... [truncated]", truncated))
+    }
 }
 
 pub type Result<T> = std::result::Result<T, Error>;

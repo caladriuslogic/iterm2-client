@@ -1,5 +1,5 @@
 use crate::auth::{self, AppleScriptRunner, Credentials, OsascriptRunner};
-use crate::error::{Error, Result};
+use crate::error::{self, Error, Result};
 use crate::proto;
 use crate::transport;
 use futures_util::{SinkExt, StreamExt};
@@ -147,7 +147,7 @@ impl<S: AsyncRead + AsyncWrite + Unpin + Send + 'static> Connection<S> {
                 if let Some(proto::server_originated_message::Submessage::Error(err_str)) =
                     &response.submessage
                 {
-                    return Err(Error::Api(err_str.clone()));
+                    return Err(error::api_error(err_str));
                 }
                 Ok(response)
             }

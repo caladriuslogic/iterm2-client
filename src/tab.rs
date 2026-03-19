@@ -2,6 +2,7 @@ use crate::connection::Connection;
 use crate::error::{Error, Result};
 use crate::proto;
 use crate::request;
+use crate::validate;
 use std::sync::Arc;
 use tokio::io::{AsyncRead, AsyncWrite};
 
@@ -11,7 +12,12 @@ pub struct Tab<S> {
 }
 
 impl<S: AsyncRead + AsyncWrite + Unpin + Send + 'static> Tab<S> {
-    pub fn new(id: String, conn: Arc<Connection<S>>) -> Self {
+    pub fn new(id: String, conn: Arc<Connection<S>>) -> Result<Self> {
+        validate::identifier(&id, "tab")?;
+        Ok(Self { id, conn })
+    }
+
+    pub(crate) fn new_unchecked(id: String, conn: Arc<Connection<S>>) -> Self {
         Self { id, conn }
     }
 

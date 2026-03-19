@@ -2,6 +2,7 @@ use crate::connection::Connection;
 use crate::error::{Error, Result};
 use crate::proto;
 use crate::request;
+use crate::validate;
 use std::sync::Arc;
 use tokio::io::{AsyncRead, AsyncWrite};
 
@@ -12,11 +13,18 @@ pub struct Session<S> {
 }
 
 impl<S: AsyncRead + AsyncWrite + Unpin + Send + 'static> Session<S> {
-    pub fn new(id: String, title: Option<String>, conn: Arc<Connection<S>>) -> Self {
+    pub fn new(id: String, title: Option<String>, conn: Arc<Connection<S>>) -> Result<Self> {
+        validate::identifier(&id, "session")?;
+        Ok(Self { id, title, conn })
+    }
+
+    /// Create without validation — used internally when IDs come from the server.
+    pub(crate) fn new_unchecked(id: String, title: Option<String>, conn: Arc<Connection<S>>) -> Self {
         Self { id, title, conn }
     }
 
     pub async fn send_text(&self, text: &str) -> Result<()> {
+        validate::text_len(text)?;
         let resp = self.conn.call(request::send_text(&self.id, text)).await?;
         match resp.submessage {
             Some(proto::server_originated_message::Submessage::SendTextResponse(r)) => {

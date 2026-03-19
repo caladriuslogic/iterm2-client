@@ -44,12 +44,12 @@ impl<S: AsyncRead + AsyncWrite + Unpin + Send + 'static> App<S> {
                 let tab_id = t.tab_id.unwrap_or_default();
                 let sessions = collect_sessions_from_tree(t.root.as_ref(), &self.conn);
                 tabs.push(TabInfo {
-                    tab: Tab::new(tab_id, Arc::clone(&self.conn)),
+                    tab: Tab::new_unchecked(tab_id, Arc::clone(&self.conn)),
                     sessions,
                 });
             }
             windows.push(WindowInfo {
-                window: Window::new(window_id, Arc::clone(&self.conn)),
+                window: Window::new_unchecked(window_id, Arc::clone(&self.conn)),
                 tabs,
             });
         }
@@ -58,7 +58,7 @@ impl<S: AsyncRead + AsyncWrite + Unpin + Send + 'static> App<S> {
             .buried_sessions
             .into_iter()
             .map(|s| {
-                Session::new(
+                Session::new_unchecked(
                     s.unique_identifier.unwrap_or_default(),
                     s.title,
                     Arc::clone(&self.conn),
@@ -88,9 +88,9 @@ impl<S: AsyncRead + AsyncWrite + Unpin + Send + 'static> App<S> {
                 let tab_id = r.tab_id.map(|id| id.to_string()).unwrap_or_default();
                 let window_id = r.window_id.unwrap_or_default();
                 Ok(CreateTabResult {
-                    window: Window::new(window_id, Arc::clone(&self.conn)),
-                    tab: Tab::new(tab_id, Arc::clone(&self.conn)),
-                    session: Session::new(session_id, None, Arc::clone(&self.conn)),
+                    window: Window::new_unchecked(window_id, Arc::clone(&self.conn)),
+                    tab: Tab::new_unchecked(tab_id, Arc::clone(&self.conn)),
+                    session: Session::new_unchecked(session_id, None, Arc::clone(&self.conn)),
                 })
             }
             _ => Err(Error::UnexpectedResponse {
@@ -231,7 +231,7 @@ fn collect_sessions_from_tree<S: AsyncRead + AsyncWrite + Unpin + Send + 'static
             if let Some(child) = &link.child {
                 match child {
                     proto::split_tree_node::split_tree_link::Child::Session(s) => {
-                        sessions.push(Session::new(
+                        sessions.push(Session::new_unchecked(
                             s.unique_identifier.clone().unwrap_or_default(),
                             s.title.clone(),
                             Arc::clone(conn),
